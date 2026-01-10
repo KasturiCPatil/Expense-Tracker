@@ -1,52 +1,43 @@
-import { Controller, Post, Body, Get, Query, Param } from '@nestjs/common';
+import { Controller, Post, Get, Query, Param } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bull';
+import { Queue } from 'bullmq';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
-import { ScraperService } from './scraper.service';
 
 @ApiTags('scraper')
 @Controller('scraper')
 export class ScraperController {
-    private jobs: Map<string, string> = new Map();
-
-    constructor(private readonly scraperService: ScraperService) { }
+    constructor(
+        @InjectQueue('scraper') private readonly scraperQueue: Queue
+    ) { }
 
     @Post('navigation')
-    @ApiOperation({ summary: 'Scrape navigation headings from WOB' })
+    @ApiOperation({ summary: 'Queue navigation headings scrape' })
     async scrapeNavigation() {
-        await this.scraperService.scrapeNavigation();
-        return { message: 'Navigation scrape completed' };
+        const job = await this.scraperQueue.add('scrape-navigation', {});
+        return { jobId: job.id, message: 'Navigation scrape queued' };
     }
 
     @Post('category/:slug')
-    @ApiOperation({ summary: 'Scrape a specific category from WOB' })
+    @ApiOperation({ summary: 'Queue category scrape' })
     async scrapeCategory(@Param('slug') slug: string) {
-        await this.scraperService.scrapeCategory(slug);
-        return { message: `Category ${slug} scrape completed` };
+        const job = await this.scraperQueue.add('scrape-category', { slug });
+        return { jobId: job.id, message: `Category ${slug} scrape queued` };
     }
 
     @Post('trigger')
-    @ApiOperation({ summary: 'Trigger a new scraping job' })
-    @ApiResponse({ status: 202, description: 'The job has been accepted.' })
-    @ApiQuery({ name: 'q', required: true, example: 'harry potter' })
-    async triggerScrape(@Query('q') searchTerm: string) {
-        const jobId = Date.now().toString();
-        this.jobs.set(jobId, 'active');
-
-        // Run in background
-        this.scraperService.scrapeWorldOfBooks(searchTerm)
-            .then(() => this.jobs.set(jobId, 'completed'))
-            .catch((err) => {
-                console.error('Scraping failed:', err);
-                this.jobs.set(jobId, 'failed');
-            });
-
-        return { jobId, status: 'Accepted' };
+    @ApiOperation({ summary: 'Queue search scrape' })
+    async triggerScrape(@Query('q') query: string) {
+        const job = await this.scraperQueue.add('scrape-search', { query });
+        return { jobId: job.id, message: `Search for ${query} queued` };
     }
 
     @Get('job-status')
     @ApiOperation({ summary: 'Get the status of a scraping job' })
-    @ApiResponse({ status: 200, description: 'Return job status.' })
     async getJobStatus(@Query('id') jobId: string) {
-        const state = this.jobs.get(jobId) || 'Not Found';
+        const job = await this.scraperQueue.getJob(jobId);
+        if (!job) return { state: 'not-found' };
+
+        const state = await job.getState();
         return {
             id: jobId,
             state,

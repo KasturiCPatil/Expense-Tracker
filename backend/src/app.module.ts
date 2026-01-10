@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { BullModule } from '@nestjs/bull';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ProductsModule } from './products/products.module';
@@ -16,14 +17,24 @@ import { HistoryModule } from './history/history.module';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    ProductsModule,
-    ScraperModule,
+    BullModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        redis: {
+          host: configService.get('REDIS_HOST', 'localhost'),
+          port: configService.get('REDIS_PORT', 6379),
+        },
+      }),
+      inject: [ConfigService],
+    }),
     TypeOrmModule.forRoot({
       type: 'sqlite',
       database: 'database.sqlite',
       autoLoadEntities: true,
-      synchronize: true, // Only for development
+      synchronize: true,
     }),
+    ProductsModule,
+    ScraperModule,
     NavigationModule,
     CategoriesModule,
     ScrapeJobsModule,

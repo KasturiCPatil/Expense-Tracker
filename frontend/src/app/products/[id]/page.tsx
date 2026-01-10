@@ -1,34 +1,30 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import useSWR from 'swr';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Product } from '@/types/product';
 import { API_BASE_URL } from '@/config';
+import ProductCard from '@/components/ProductCard';
+import { motion } from 'framer-motion';
+
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export default function ProductDetailPage() {
     const { id } = useParams();
     const router = useRouter();
-    const [product, setProduct] = useState<Product | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
 
-    useEffect(() => {
-        const fetchProduct = async () => {
-            try {
-                const response = await fetch(`${API_BASE_URL}/products/${id}`);
-                if (!response.ok) throw new Error('Product not found');
-                const data = await response.json();
-                setProduct(data);
-            } catch (error) {
-                console.error('Error fetching product:', error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
+    const { data: product, error, isLoading } = useSWR<Product>(
+        id ? `${API_BASE_URL}/products/${id}` : null,
+        fetcher
+    );
 
-        if (id) fetchProduct();
-    }, [id]);
+    // Simple Recommendation Logic: Fetch products from same category
+    const { data: recommendations } = useSWR<Product[]>(
+        product?.category?.id ? `${API_BASE_URL}/products?q=${product.category.title}` : null,
+        fetcher
+    );
 
     if (isLoading) {
         return (
@@ -45,7 +41,7 @@ export default function ProductDetailPage() {
         );
     }
 
-    if (!product) {
+    if (error || !product) {
         return (
             <div className="max-w-7xl mx-auto px-4 py-24 text-center">
                 <h2 className="text-2xl font-bold mb-4">Product not found</h2>
@@ -164,6 +160,21 @@ export default function ProductDetailPage() {
                     )}
                 </div>
             </div>
+
+            {/* Recommendations Section */}
+            {recommendations && recommendations.length > 0 && (
+                <section className="mt-20 pt-12 border-t border-gray-100">
+                    <h2 className="text-3xl font-bold text-gray-900 mb-8">Related Books</h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                        {recommendations
+                            .filter(p => p.id !== product.id)
+                            .slice(0, 4)
+                            .map((rec) => (
+                                <ProductCard key={rec.id} product={rec} />
+                            ))}
+                    </div>
+                </section>
+            )}
         </div>
     );
 }

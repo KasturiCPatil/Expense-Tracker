@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import useSWR from 'swr';
 import SearchBar from '@/components/SearchBar';
 import ProductCard from '@/components/ProductCard';
 import CategoryCard from '@/components/CategoryCard';
@@ -8,35 +9,21 @@ import { motion } from 'framer-motion';
 import { Product } from '@/types/product';
 import { API_BASE_URL } from '@/config';
 
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
+
 export default function HomePage() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [navigation, setNavigation] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isScraping, setIsScraping] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isScraping, setIsScraping] = useState(false);
 
-  const fetchNavigation = async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/navigation`);
-      const data = await response.json();
-      setNavigation(data);
-    } catch (error) {
-      console.error('Failed to fetch navigation:', error);
-    }
-  };
+  const { data: navigation, isLoading: navLoading } = useSWR<any[]>(
+    `${API_BASE_URL}/navigation`,
+    fetcher
+  );
 
-  const fetchProducts = async (query = '') => {
-    setIsLoading(true);
-    try {
-      const response = await fetch(`${API_BASE_URL}/products${query ? `?q=${query}` : ''}`);
-      const data = await response.json();
-      setProducts(data);
-    } catch (error) {
-      console.error('Failed to fetch products:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const { data: products, isLoading: productsLoading, mutate: refreshProducts } = useSWR<Product[]>(
+    `${API_BASE_URL}/products${searchQuery ? `?q=${searchQuery}` : ''}`,
+    fetcher
+  );
 
   const handleSearch = async (query: string) => {
     setSearchQuery(query);
@@ -54,7 +41,7 @@ export default function HomePage() {
         if (state === 'completed' || state === 'failed') {
           clearInterval(pollStatus);
           setIsScraping(false);
-          fetchProducts(query);
+          refreshProducts();
         }
       }, 2000);
     } catch (error) {
@@ -62,11 +49,6 @@ export default function HomePage() {
       setIsScraping(false);
     }
   };
-
-  useEffect(() => {
-    fetchNavigation();
-    fetchProducts();
-  }, []);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -86,7 +68,7 @@ export default function HomePage() {
       </div>
 
       {/* Navigation Sections */}
-      {navigation.length > 0 && (
+      {!navLoading && navigation && navigation.length > 0 && (
         <section className="mb-20">
           <div className="flex items-center justify-between mb-8">
             <h2 className="text-3xl font-bold text-gray-900">Browse by Category</h2>
@@ -112,17 +94,17 @@ export default function HomePage() {
           {searchQuery ? `Results for "${searchQuery}"` : 'Recently Discovered'}
         </h2>
         <div className="text-sm text-gray-500">
-          {products.length} products found
+          {products?.length || 0} products found
         </div>
       </div>
 
-      {isLoading ? (
+      {productsLoading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
           {[...Array(8)].map((_, i) => (
             <div key={i} className="bg-white rounded-xl h-96 animate-pulse border border-gray-100" />
           ))}
         </div>
-      ) : products.length > 0 ? (
+      ) : products && products.length > 0 ? (
         <motion.div
           initial="hidden"
           animate="visible"
@@ -143,8 +125,7 @@ export default function HomePage() {
         </motion.div>
       ) : (
         <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-gray-200">
-          {/* Fallback empty state */}
-          <p>No products available yet.</p>
+          <p className="text-gray-500">No products available yet. Try searching above!</p>
         </div>
       )}
     </div>

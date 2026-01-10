@@ -16,42 +16,44 @@ docker-compose up --build
 
 ## 🏗️ Architecture
 
-- **Frontend**: Next.js 15 (App Router), TypeScript, Tailwind CSS, Framer Motion.
-- **Backend**: NestJS, TypeORM, Playwright + Crawlee for scraping.
-- **Database**: SQLite (Development/Docker), PostgreSQL ready for production.
-- **CI/CD**: GitHub Actions for linting and building.
+- **Frontend**: Next.js 15, SWR for optimized data fetching, Tailwind CSS, Framer Motion.
+- **Backend**: NestJS, BullMQ + Redis for background scraping, TypeORM.
+- **Database**: SQLite (Development), PostgreSQL ready.
+- **CI/CD**: GitHub Actions for lint/test/build.
 
 ## 🛠️ Key Features
 
-- **Hierarchical Navigation**: Scrapes main headings and categories directly from World of Books.
-- **On-Demand Scraping**: Trigger deep scrapes for specific categories or search terms.
-- **Rich Metadata**: Extracts titles, authors, prices, ISBNs, descriptions, and condition.
-- **Navigation History**: Persists user browsing paths client-side and syncs with the backend.
-- **Deduplication**: Ensures unique products are stored and updated rather than duplicated.
+- **Hierarchical Navigation**: Discover headings and categories directly from WOB.
+- **On-Demand Deep Scraper**: High-performance scraping with deduplication & TTL caching.
+- **Recommendation Engine**: Dynamic related products based on category context.
+- **Navigation History**: Persistent user paths synced between client and server.
+- **Advanced Search**: Rich filters (price, categories) and optimized grid views.
 
-## 📖 Deployment Instructions
-
-### Frontend (Vercel/Render)
-- Set `NEXT_PUBLIC_API_URL` to your deployed backend URL.
-- Deploy the `frontend/` directory.
-
-### Backend (Render/Railway)
-- Set `PORT` and environment variables for your production database.
-- Deploy the `backend/` directory.
-
-## 🧪 Testing
+## 🧪 Testing & Seeding
 
 ```bash
-# Backend tests
+# Seed sample data
+cd backend && npm run seed
+
+# Run Backend Tests (Unit + E2E)
 cd backend && npm test
 
-# Frontend lint
+# Frontend Lint
 cd frontend && npm run lint
 ```
 
+## 📖 Deployment
+
+### Backend (Render/Railway)
+- Provide `REDIS_HOST` and `REDIS_PORT` for BullMQ.
+- Mount a persistent volume for SQLite OR configure a PostgreSQL instance.
+
+### Frontend (Vercel)
+- Set `NEXT_PUBLIC_API_URL` to your production backend URL.
+
 ## 📜 Design Decisions
 
-1. **Monorepo Layout**: Consolidated `frontend/` and `backend/` for easier deployment and CI management.
-2. **SQLite for Demo**: Used SQLite for zero-config local runs, while maintaining TypeORM entities that are PostgreSQL-compatible.
-3. **Framer Motion**: Used for premium UI transitions and skeleton loading states.
-4. **Crawlee + Playwright**: Chosen for robust headless browser scraping that handles modern SPA-like sites like World of Books.
+1. **BullMQ Worker Model**: Decouples scraping from the request thread, ensuring high reliability and scalability.
+2. **SWR for Frontend**: Implements stale-while-revalidate for snappy UI and automatic background updates.
+3. **Crawl Deduplication & TTL**: Smart caching (24h default) prevents overloading the source site and ensures data freshness.
+4. **Monorepo structure**: Simplifies orchestrating both services and shared configurations.

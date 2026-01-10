@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Body, Param, Delete, Query } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { ProductsService } from './products.service';
 import { Product } from './product.entity';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -21,6 +21,21 @@ export class ProductsController {
     @ApiResponse({ status: 200, description: 'Return all products.', type: [Product] })
     findAll(@Query('q') query?: string): Promise<Product[]> {
         return this.productsService.findAll(query);
+    }
+
+    @Get('search')
+    @ApiOperation({ summary: 'Search products with rich filters' })
+    @ApiQuery({ name: 'q', required: false })
+    @ApiQuery({ name: 'minPrice', required: false, type: Number })
+    @ApiQuery({ name: 'maxPrice', required: false, type: Number })
+    @ApiQuery({ name: 'categoryId', required: false })
+    search(
+        @Query('q') q?: string,
+        @Query('minPrice') minPrice?: number,
+        @Query('maxPrice') maxPrice?: number,
+        @Query('categoryId') categoryId?: string,
+    ) {
+        return this.productsService.search({ q, minPrice, maxPrice, categoryId });
     }
 
     @Get(':id')

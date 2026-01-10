@@ -16,9 +16,8 @@ export class ScraperService {
 
     async scrapeNavigation() {
         this.logger.log('Starting navigation scrape');
-
         const results: any[] = [];
-        const fastCrawler = new PlaywrightCrawler({
+        const crawler = new PlaywrightCrawler({
             maxRequestsPerCrawl: 1,
             async requestHandler({ page }) {
                 const headings = await page.evaluate(() => {
@@ -29,7 +28,6 @@ export class ScraperService {
                         const title = anchor.innerText.trim();
                         const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
 
-                        // Extract subcategories
                         const subMenu = li.querySelector('ul.list-menu:not(.list-menu--inline), .mega-menu, .header__submenu');
                         const subCategories = subMenu ? Array.from(subMenu.querySelectorAll('a.header__menu-item')).map(sub => ({
                             title: (sub as HTMLElement).innerText.trim(),
@@ -43,7 +41,7 @@ export class ScraperService {
             }
         });
 
-        await fastCrawler.run(['https://www.worldofbooks.com/en-gb']);
+        await crawler.run(['https://www.worldofbooks.com/en-gb']);
 
         for (const navData of results) {
             const nav = await this.navigationService.upsert(navData.title, navData.slug);
@@ -52,7 +50,6 @@ export class ScraperService {
                 await this.categoriesService.upsert(catData.title, catSlug, nav);
             }
         }
-
         this.logger.log(`Scraped ${results.length} navigation headings`);
     }
 
@@ -61,11 +58,10 @@ export class ScraperService {
         if (!category) throw new Error(`Category ${slug} not found`);
 
         const url = `https://www.worldofbooks.com/en-gb/category/${slug}`;
-
         this.logger.log(`Starting category scrape for: ${slug}`);
 
         const crawler = new PlaywrightCrawler({
-            async requestHandler({ page, enqueueLinks, log, request }) {
+            async requestHandler({ page, enqueueLinks, request }) {
                 if (request.label === 'DETAIL') {
                     const productData = await page.evaluate(() => {
                         const title = (document.querySelector('h1') as HTMLElement)?.innerText.trim() || 'Unknown';
@@ -74,10 +70,33 @@ export class ScraperService {
                         const price = parseFloat(priceText.replace(/[^0-9.]/g, '')) || 0;
                         const imageUrl = (document.querySelector('.product-image img, img[class*="product"]') as HTMLImageElement)?.src;
 
-                        const description = (document.querySelector('#description, .product__description') as HTMLElement)?.innerText.trim() || '';
-                        const isbn = (document.querySelector('.isbn, [class*="isbn"]') as HTMLElement)?.innerText.trim() || '';
+                        // Extract rich metadata
+                        const specs: any = {};
+                        const rows = document.querySelectorAll('.additional-info-table tr, .product-meta-row');
+                        rows.forEach(row => {
+                            const cells = row.querySelectorAll('td, th, span');
+                            if (cells.length >= 2) {
+                                const key = (cells[0] as HTMLElement).innerText.trim().replace(/:$/, '');
+                                const val = (cells[1] as HTMLElement).innerText.trim();
+                                if (key && val) specs[key.toLowerCase().replace(/ /g, '_')] = val;
+                            }
+                        });
 
-                        return { title, author, price, imageUrl, description, isbn, sourceUrl: window.location.href };
+                        const description = (document.querySelector('#description, .product__description, [id*="Summary"] + .panel') as HTMLElement)?.innerText.trim() || '';
+
+                        // Editorial Reviews
+                        const reviews: any[] = [];
+                        const reviewPanel = document.querySelector('[id*="Reviews"] + .panel');
+                        if (reviewPanel) {
+                            reviews.push({ author: 'Editorial', text: (reviewPanel as HTMLElement).innerText.trim(), rating: 5 });
+                        }
+
+                        // Related Products
+                        const relatedUrls = Array.from(document.querySelectorAll('.algolia-recommendation a.product-card, .related-products a'))
+                            .map(a => (a as HTMLAnchorElement).href)
+                            .slice(0, 5);
+
+                        return { title, author, price, imageUrl, description, specs, reviews, relatedUrls, sourceUrl: window.location.href };
                     });
                     await Dataset.pushData(productData);
                 } else {
@@ -115,8 +134,18 @@ export class ScraperService {
                     const data = await page.evaluate(() => {
                         const title = (document.querySelector('h1') as HTMLElement)?.innerText.trim();
                         const author = (document.querySelector('.author') as HTMLElement)?.innerText.trim();
-                        const price = parseFloat(document.querySelector('.price')?.textContent?.replace(/[^0-9.]/g, '') || '0');
+                        const priceText = document.querySelector('.price')?.textContent || '0';
+                        const price = parseFloat(priceText.replace(/[^0-9.]/g, '') || '0');
                         const imageUrl = (document.querySelector('.product-image img') as HTMLImageElement)?.src;
+
+                        // Metadata and specs
+                        const specs: any = {};
+                        document.querySelectorAll('.additional-info-table tr').forEach(row => {
+                            const cells = row.querySelectorAll('td, span');
+                            if (cells.length >= 2) {
+                                specs[(cells[0] as HTMLElement).innerText.trim().replace(/:$/, '').toLowerCase().replace(/ /g, '_')] = (cells[1] as HTMLElement).innerText.trim();
+                            }
+                        });
 
                         return {
                             title,
@@ -124,8 +153,9 @@ export class ScraperService {
                             price,
                             imageUrl,
                             sourceUrl: window.location.href,
-                            description: (document.querySelector('.product__description') as HTMLElement)?.innerText.trim(),
-                            isbn13: (document.querySelector('.isbn') as HTMLElement)?.innerText.trim()
+                            description: (document.querySelector('.product__description, [id*="Summary"] + .panel') as HTMLElement)?.innerText.trim(),
+                            specs,
+                            isbn13: (document.querySelector('#info-isbn13') as HTMLElement)?.innerText.trim()
                         };
                     });
                     await Dataset.pushData(data);

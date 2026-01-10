@@ -89,7 +89,14 @@ export default function ProductDetailPage() {
                 <div className="w-full lg:w-1/2 space-y-8">
                     <div>
                         <div className="flex items-center gap-2 text-sm text-indigo-600 font-medium mb-2">
-                            <span className="uppercase tracking-wider">{product.category || 'General'}</span>
+                            {product.category && (
+                                <Link
+                                    href={`/categories/${product.category.slug}`}
+                                    className="uppercase tracking-wider hover:underline"
+                                >
+                                    {product.category.title}
+                                </Link>
+                            )}
                             <span>•</span>
                             <span>{product.condition || 'Used'}</span>
                         </div>
@@ -112,9 +119,23 @@ export default function ProductDetailPage() {
                     <div className="space-y-4">
                         <h2 className="text-xl font-bold text-gray-900 border-l-4 border-indigo-600 pl-3">Description</h2>
                         <p className="text-gray-600 leading-relaxed whitespace-pre-line">
-                            {product.description || 'No description available for this item.'}
+                            {product.detail?.description || product.description || 'No description available for this item.'}
                         </p>
                     </div>
+
+                    {product.detail?.specs && (
+                        <div className="space-y-4 border-t border-gray-100 pt-6">
+                            <h2 className="text-xl font-bold text-gray-900 border-l-4 border-indigo-600 pl-3">Specifications</h2>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
+                                {Object.entries(product.detail.specs).map(([key, value]) => (
+                                    <div key={key} className="flex justify-between text-sm py-1 border-b border-gray-50">
+                                        <span className="text-gray-500 capitalize">{key.replace(/_/g, ' ')}</span>
+                                        <span className="font-medium text-gray-900">{String(value)}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
                     <div className="grid grid-cols-2 gap-4 pt-4 text-sm">
                         <div className="p-4 bg-gray-50 rounded-2xl">

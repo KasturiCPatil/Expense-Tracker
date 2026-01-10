@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, Query } from '@nestjs/common';
+import { Controller, Post, Body, Get, Query, Param } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { ScraperService } from './scraper.service';
 
@@ -8,6 +8,20 @@ export class ScraperController {
     private jobs: Map<string, string> = new Map();
 
     constructor(private readonly scraperService: ScraperService) { }
+
+    @Post('navigation')
+    @ApiOperation({ summary: 'Scrape navigation headings from WOB' })
+    async scrapeNavigation() {
+        await this.scraperService.scrapeNavigation();
+        return { message: 'Navigation scrape completed' };
+    }
+
+    @Post('category/:slug')
+    @ApiOperation({ summary: 'Scrape a specific category from WOB' })
+    async scrapeCategory(@Param('slug') slug: string) {
+        await this.scraperService.scrapeCategory(slug);
+        return { message: `Category ${slug} scrape completed` };
+    }
 
     @Post('trigger')
     @ApiOperation({ summary: 'Trigger a new scraping job' })

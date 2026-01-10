@@ -3,15 +3,27 @@
 import React, { useState, useEffect } from 'react';
 import SearchBar from '@/components/SearchBar';
 import ProductCard from '@/components/ProductCard';
+import CategoryCard from '@/components/CategoryCard';
 import { motion } from 'framer-motion';
 import { Product } from '@/types/product';
 import { API_BASE_URL } from '@/config';
 
 export default function HomePage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [navigation, setNavigation] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isScraping, setIsScraping] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  const fetchNavigation = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/navigation`);
+      const data = await response.json();
+      setNavigation(data);
+    } catch (error) {
+      console.error('Failed to fetch navigation:', error);
+    }
+  };
 
   const fetchProducts = async (query = '') => {
     setIsLoading(true);
@@ -30,13 +42,11 @@ export default function HomePage() {
     setSearchQuery(query);
     setIsScraping(true);
     try {
-      // 1. Trigger scraping
       const scrapeResponse = await fetch(`${API_BASE_URL}/scraper/trigger?q=${query}`, {
         method: 'POST',
       });
       const { jobId } = await scrapeResponse.json();
 
-      // 2. Poll for job completion
       const pollStatus = setInterval(async () => {
         const statusResponse = await fetch(`${API_BASE_URL}/scraper/job-status?id=${jobId}`);
         const { state } = await statusResponse.json();
@@ -44,7 +54,6 @@ export default function HomePage() {
         if (state === 'completed' || state === 'failed') {
           clearInterval(pollStatus);
           setIsScraping(false);
-          // 3. Refresh product list
           fetchProducts(query);
         }
       }, 2000);
@@ -55,27 +64,55 @@ export default function HomePage() {
   };
 
   useEffect(() => {
+    fetchNavigation();
     fetchProducts();
   }, []);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      {/* Hero Section */}
       <div className="text-center mb-16">
-        <h1 className="text-4xl md:text-6xl font-extrabold text-gray-900 mb-6 tracking-tight">
-          Find Your Next <span className="text-indigo-600">Great Read</span>
-        </h1>
+        <motion.h1
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-4xl md:text-6xl font-extrabold text-gray-900 mb-6 tracking-tight"
+        >
+          World of Books <span className="text-indigo-600">Explorer</span>
+        </motion.h1>
         <p className="text-xl text-gray-500 max-w-2xl mx-auto mb-10">
-          Search thousands of books across World of Books. Instantly compare prices and availability.
+          Discover a world of stories. Browse categories or search for your next favorite book.
         </p>
         <SearchBar onSearch={handleSearch} isLoading={isScraping} />
       </div>
 
+      {/* Navigation Sections */}
+      {navigation.length > 0 && (
+        <section className="mb-20">
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-3xl font-bold text-gray-900">Browse by Category</h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {navigation.map((nav) => (
+              <div key={nav.id} className="space-y-4">
+                <h3 className="text-lg font-bold text-indigo-600 px-2">{nav.title}</h3>
+                <div className="space-y-3">
+                  {nav.categories?.slice(0, 5).map((cat: any) => (
+                    <CategoryCard key={cat.id} category={cat} />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Product Results */}
       <div className="mb-8 flex items-center justify-between">
         <h2 className="text-2xl font-bold text-gray-900">
-          {searchQuery ? `Results for "${searchQuery}"` : 'Recent Products'}
+          {searchQuery ? `Results for "${searchQuery}"` : 'Recently Discovered'}
         </h2>
         <div className="text-sm text-gray-500">
-          Showing {products.length} products
+          {products.length} products found
         </div>
       </div>
 
@@ -106,13 +143,8 @@ export default function HomePage() {
         </motion.div>
       ) : (
         <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-gray-200">
-          <div className="text-gray-400 mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-            </svg>
-          </div>
-          <h3 className="text-xl font-semibold text-gray-900">No products found</h3>
-          <p className="text-gray-500">Try searching for a book title or author above.</p>
+          {/* Fallback empty state */}
+          <p>No products available yet.</p>
         </div>
       )}
     </div>

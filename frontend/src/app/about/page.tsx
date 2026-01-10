@@ -25,16 +25,16 @@ export default function AboutPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-12 text-left">
                     <div className="p-6 bg-white rounded-3xl shadow-sm border border-gray-100">
-                        <div className="text-indigo-600 font-bold mb-2">Deep Scraping</div>
-                        <p className="text-gray-500 text-sm">Automated agents that traverse listings and extract rich metadata.</p>
+                        <div className="text-indigo-600 font-bold mb-2">Hierarchical Scraping</div>
+                        <p className="text-gray-500 text-sm">Automated agents that traverse World of Books navigation, categories, and deep listings.</p>
                     </div>
                     <div className="p-6 bg-white rounded-3xl shadow-sm border border-gray-100">
-                        <div className="text-indigo-600 font-bold mb-2">Real-time Data</div>
-                        <p className="text-gray-500 text-sm">Instant fetching and synchronization with our local SQLite engine.</p>
+                        <div className="text-indigo-600 font-bold mb-2">Relational Persistence</div>
+                        <p className="text-gray-500 text-sm">Complex schema supporting categories, product details, and user browsing history.</p>
                     </div>
                     <div className="p-6 bg-white rounded-3xl shadow-sm border border-gray-100">
-                        <div className="text-indigo-600 font-bold mb-2">Premium UI</div>
-                        <p className="text-gray-500 text-sm">Built with Next.js 14, Tailwind CSS, and Framer Motion for a wow experience.</p>
+                        <div className="text-indigo-600 font-bold mb-2">Production Engineering</div>
+                        <p className="text-gray-500 text-sm">Built with NestJS, Next.js 15, PostgreSQL-ready schema, and Docker orchestration.</p>
                     </div>
                 </div>
 

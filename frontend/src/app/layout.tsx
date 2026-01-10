@@ -18,6 +18,8 @@ export const metadata: Metadata = {
   description: "Explore and search for your favorite books",
 };
 
+import HistoryLogger from "@/components/HistoryLogger";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -28,6 +30,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-50 text-gray-900`}
       >
+        <HistoryLogger />
         <Navbar />
         <main className="pt-20 min-h-screen">
           {children}

@@ -1,23 +1,18 @@
 version: '3.8'
 
 services:
-  backend:
-    build: ./backend
-    ports:
-      - "3001:3001"
+  mysql:
+    image: mysql:8.0
+    container_name: expense_mysql
     environment:
-      - PORT=3001
-      - NODE_ENV=production
-      - DB_TYPE=sqlite
-      - DB_NAME=database.sqlite
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: expensedb
+      MYSQL_USER: expenseuser
+      MYSQL_PASSWORD: expensepassword
+    ports:
+      - "3306:3306"
     volumes:
-      - ./backend/database.sqlite:/app/database.sqlite
+      - mysql_data:/var/lib/mysql
 
-  frontend:
-    build: ./frontend
-    ports:
-      - "3000:3000"
-    environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:3001
-    depends_on:
-      - backend
+volumes:
+  mysql_data:

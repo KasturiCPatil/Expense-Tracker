@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import api from '../api';
 import { Lock, User } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export default function LoginPage({ onLoginSuccess }) {
   const [username, setUsername] = useState('');
@@ -9,20 +10,33 @@ export default function LoginPage({ onLoginSuccess }) {
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async (e) => {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
+  e.preventDefault();
+  setError(null);
+  setLoading(true);
 
-    try {
-      const res = await api.post('/auth/login', { username, password });
-      onLoginSuccess(res.data); // Passes {role, id, name} to App.jsx global state
-    } catch (err) {
-      setError(err.response?.data || "Invalid credentials.");
-    } finally {
-      setLoading(false);
+  try {
+    const res = await api.post('/auth/login', { username, password });
+
+    console.log("Login success:", res.data); // debug
+
+    onLoginSuccess(res.data);
+
+    if (res.data.role === "ADMIN") {
+      navigate("/");
+    } else {
+      navigate("/my-expenses");
     }
-  };
 
+  } catch (err) {
+    if (!err.response) {
+      setError("Cannot connect to server. Ensure Backend is running!");
+    } else {
+      setError(err.response.data || "Invalid credentials.");
+    }
+  } finally {
+    setLoading(false);
+  }
+};
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center p-4">
       <div className="w-full max-w-md bg-white rounded-3xl shadow-xl shadow-brand-100/50 border border-slate-100 overflow-hidden">

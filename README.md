@@ -1,59 +1,48 @@
-# Product Data Explorer — Full-Stack Assignment
+# Expense Tracker — Full-Stack Application
 
-A production-minded product exploration platform built with Next.js and NestJS, featuring real-time, on-demand scraping of **World of Books**.
+A lightweight, production-ready expense management platform built with React and Java Spring Boot.
 
-## 🚀 Quick Start (Docker)
+## 🚀 Live Demo
+- **Live Frontend**: [https://expense-tracker-g4faxcmoj-kasturi-patils-projects.vercel.app](https://expense-tracker-g4faxcmoj-kasturi-patils-projects.vercel.app)
+- **Live Backend API**: [https://expense-tracker-production-8630.up.railway.app/api](https://expense-tracker-production-8630.up.railway.app/api)
 
-The easiest way to run the entire stack is using Docker Compose:
+## 🏗️ Architecture & Technology Stack
 
-```bash
-docker-compose up --build
-```
-
-- **Frontend**: [http://localhost:3000](http://localhost:3000)
-- **Backend API**: [http://localhost:3001](http://localhost:3001)
-- **Swagger Docs**: [http://localhost:3001/api](http://localhost:3001/api)
-
-## 🏗️ Architecture
-
-- **Frontend**: Next.js 15, SWR for optimized data fetching, Tailwind CSS, Framer Motion.
-- **Backend**: NestJS, BullMQ + Redis for background scraping, TypeORM.
-- **Database**: SQLite (Development), PostgreSQL ready.
-- **CI/CD**: GitHub Actions for lint/test/build.
+- **Frontend**: React 19, Vite, Tailwind CSS, Recharts (for data visualization), Lucide React (for icons).
+- **Backend**: Java 17, Spring Boot, Spring Data JPA, Spring Web.
+- **Database**: H2 In-Memory Database (for zero-config cloud deployment).
+- **Deployment**: Vercel (Frontend), Railway (Backend).
 
 ## 🛠️ Key Features
 
-- **Hierarchical Navigation**: Discover headings and categories directly from WOB.
-- **On-Demand Deep Scraper**: High-performance scraping with deduplication & TTL caching.
-- **Recommendation Engine**: Dynamic related products based on category context.
-- **Navigation History**: Persistent user paths synced between client and server.
-- **Advanced Search**: Rich filters (price, categories) and optimized grid views.
+- **Role-Based Authentication**: Distinct access levels and dashboards for Employees and Administrators.
+- **Expense Logging**: Easily capture and track personal or corporate expenses.
+- **Data Visualization**: Integrated charts to analyze expense distributions and trends.
+- **Embedded Database Setup**: Uses H2 database for seamless cloud hosting without external database dependencies.
 
-## 🧪 Testing & Seeding
+## 💻 Local Quick Start
 
-```bash
-# Seed sample data
-cd backend && npm run seed
+Before running locally, ensure you have **Java 17+** and **Node.js** installed.
 
-# Run Backend Tests (Unit + E2E)
-cd backend && npm test
+### Back-End (Spring Boot API)
+1. Navigate to the backend directory:
+   ```bash
+   cd expense-api
+   ```
+2. Run the Spring Boot application using Maven:
+   ```bash
+   ./mvnw spring-boot:run
+   ```
+   *The backend will start at `http://localhost:8080/api`*
 
-# Frontend Lint
-cd frontend && npm run lint
-```
-
-## 📖 Deployment
-
-### Backend (Render/Railway)
-- Provide `REDIS_HOST` and `REDIS_PORT` for BullMQ.
-- Mount a persistent volume for SQLite OR configure a PostgreSQL instance.
-
-### Frontend (Vercel)
-- Set `NEXT_PUBLIC_API_URL` to your production backend URL.
-
-## 📜 Design Decisions
-
-1. **BullMQ Worker Model**: Decouples scraping from the request thread, ensuring high reliability and scalability.
-2. **SWR for Frontend**: Implements stale-while-revalidate for snappy UI and automatic background updates.
-3. **Crawl Deduplication & TTL**: Smart caching (24h default) prevents overloading the source site and ensures data freshness.
-4. **Monorepo structure**: Simplifies orchestrating both services and shared configurations.
+### Front-End (React UI)
+1. Navigate to the frontend directory:
+   ```bash
+   cd expense-ui
+   ```
+2. Install dependencies & start the Vite server:
+   ```bash
+   npm install
+   npm run dev
+   ```
+   *The frontend will start at `http://localhost:5173`*
